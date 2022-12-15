@@ -34,6 +34,7 @@ public class Manejador extends Thread{
     protected String FileName;
     protected boolean hasParameters;
     protected String parameters;
+    protected String ContentType;
     
 
     public Manejador(Socket _socket) throws Exception{
@@ -77,45 +78,9 @@ public class Manejador extends Thread{
                     pw.println();
             }
             
-            /*if(!hasParameters){
-
-                if(FileName.compareTo("/")==0){
-                    SendA("/index.htm");
-                }else{
-                    switch(methodID){
-                        case 1://HEAD
-                                
-                            break;   
-                        case 2://GET
-
-                            break;  
-                        case 3://POST
-
-                            break;  
-                        case 4://DELETE
-
-                            break;  
-                        default:
-                            pw.println("HTTP/1.0 501 Not Implemented");
-                            pw.println();
-                    }
-                                
-                                
-                                
-                    
-                    SendA(FileName);
-                }
-                
-
-            }else if(line.toUpperCase().startsWith("GET")||line.toUpperCase().startsWith("POST")){
-
-            }else{
-                    pw.println("HTTP/1.0 501 Not Implemented");
-                    pw.println();
-            }*/
-        
-        pw.flush();
-        bos.flush();
+            
+            pw.flush();
+            bos.flush();
         
         }catch(Exception e){e.printStackTrace();}
         
@@ -131,10 +96,9 @@ public class Manejador extends Thread{
             notFound();
         }else if(!this.hasParameters){
             if(FileName.compareTo("/")==0){
-                SendA("/index.htm");
-            }else{
-                SendA(FileName);
+                FileName="/index.htm";  
             }
+            SendA(FileName);
         }else{
             pw.println("HTTP/1.0 200 OK");
             pw.flush();
@@ -250,7 +214,21 @@ public class Manejador extends Thread{
             this.FileName = tokens.nextToken();
             this.parameters=tokens.nextToken();
         }
+        setContentType();
         printInfoRequest();
+    }
+    
+    public void setContentType(){
+        if(FileName.endsWith(".jpg"))
+            ContentType="image/jpeg";
+        if(FileName.endsWith(".htm"))
+            ContentType="text/html";
+        if(FileName.endsWith(".html"))
+            ContentType="text/html";
+        if(FileName.endsWith(".pdf"))
+            ContentType="application/pdf";
+        if(FileName.endsWith(".mp3"))
+            ContentType="audio/mpeg";
     }
     
     public void printInfoRequest(){
@@ -289,7 +267,7 @@ public class Manejador extends Thread{
                     sb = sb+"HTTP/1.0 200 ok\n";
                     sb = sb +"Server: Practica4/1.0 \n";
                     sb = sb +"Date: " + new Date()+" \n";
-                    sb = sb +"Content-Type: text/html \n";
+                    sb = sb +"Content-Type: "+this.ContentType+" \n";
                     sb = sb +"Content-Length: "+tam_archivo+" \n";
                     sb = sb +"\n";
                     bos.write(sb.getBytes());
