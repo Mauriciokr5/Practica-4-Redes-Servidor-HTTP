@@ -16,6 +16,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.URLDecoder;
 import java.util.Date;
 import java.util.StringTokenizer;
 import java.util.stream.Collectors;
@@ -46,7 +47,7 @@ public class Manejador extends Thread{
             bos=new BufferedOutputStream(socket.getOutputStream());
             pw=new PrintWriter(new OutputStreamWriter(bos));
             String line =  br.readLine();
-
+            
             if(line==null){
                     pw.print("<html><head><title>Servidor WEB");
                     pw.print("</title><body bgcolor=\"#AACCFF\"<br>Linea Vacia</br>");
@@ -59,6 +60,8 @@ public class Manejador extends Thread{
             System.out.println("Datos: "+line+"\r\n\r\n");
             
             getInfoRequest(line);
+            setContentType();
+            printInfoRequest();
             
             switch(methodID){
                 case 1://HEAD
@@ -89,10 +92,95 @@ public class Manejador extends Thread{
         }catch(Exception e){e.printStackTrace();}
     }
     
+
+    
+    public void notFoundPage(){
+        pw.println("HTTP/1.0 404 Not Foud");
+        pw.flush();
+        pw.println();
+        pw.flush();
+        pw.print("<html><head><title>Error 404");
+        pw.flush();
+        pw.print("</title></head><body bgcolor=\"#8B0000\"><center><h1>Error 404</h1><h2>No se encontro el archivo solicitado</h2>");
+        pw.flush();
+        pw.print("</center></body></html>");
+        pw.flush();
+    }
+    
+    public void getInfoRequest(String line) throws IOException{
+        StringTokenizer tokens=new StringTokenizer(line," ?");
+        this.method = tokens.nextToken();
+        this.methodID = setMethodID();
+        this.FileName = tokens.nextToken();
+        if(this.methodID==3||this.methodID==4){
+            getParametersPOST();
+        }else{
+            if(tokens.countTokens()==1){//sin parametros
+                this.hasParameters = false;
+            }else{//con parametros
+                this.hasParameters = true;
+                this.parameters=tokens.nextToken();
+            }
+        }
+        
+    }
+    
+    public void getParametersPOST() throws IOException{
+        int postDataI = -1;
+        String line;
+        //Busca si hay parametros
+        while ((line = br.readLine()) != null && (line.length() != 0)) {
+            if (line.indexOf("Content-Length:") > -1) {
+                postDataI = Integer.parseInt(line.substring(line.indexOf("Content-Length:") + 16, line.length()));
+            }
+        }
+
+        String postData = "";
+
+        if (postDataI > 0) {//Hay parametros
+            char[] charArray = new char[postDataI];
+            br.read(charArray, 0, postDataI);
+            postData = new String(charArray);
+            this.parameters = postData;
+            this.hasParameters = true;
+        }else{//No hay parametros
+            this.hasParameters = false;
+        }
+        
+    }
+    
+    public void setContentType(){
+        if(FileName.endsWith(".jpg"))
+            ContentType="image/jpeg";
+        if(FileName.endsWith(".htm"))
+            ContentType="text/html";
+        if(FileName.endsWith(".html"))
+            ContentType="text/html";
+        if(FileName.endsWith(".pdf"))
+            ContentType="application/pdf";
+        if(FileName.endsWith(".mp3"))
+            ContentType="audio/mpeg";
+    }
+
+    public void methodHEAD(){
+        File file= new File("." + this.FileName);
+        if(file.exists()){
+            System.out.println("Existe");
+            pw.println("HTTP/1.0 200 OK");
+            pw.flush();
+        }else{
+            System.out.println("No existe");
+            pw.println("HTTP/1.0 404 Not Found");
+            pw.flush();
+        }
+        pw.println();
+        pw.flush();
+    }
+    
     public void methodGET(){
         File file= new File("." + this.FileName);
         if(!file.exists()){
-            notFound();
+            notFoundPage();
         }else if(!this.hasParameters){
             if(FileName.compareTo("/")==0){
                 FileName="/index.htm";  
@@ -118,7 +206,7 @@ public class Manejador extends Thread{
     public void methodPOST(){
         File file= new File("." + this.FileName);
         if(!file.exists()){
-            notFound();
+            notFoundPage();
         }else if(!this.hasParameters){
             if(FileName.compareTo("/")==0){
                 SendA("/index.htm");
@@ -140,21 +228,6 @@ public class Manejador extends Thread{
             pw.flush();
         }
         
-    }
-    
-    public void methodHEAD(){
-        File file= new File("." + this.FileName);
-        if(file.exists()){
-            System.out.println("Existe");
-            pw.println("HTTP/1.0 200 OK");
-            pw.flush();
-        }else{
-            System.out.println("No existe");
-            pw.println("HTTP/1.0 404 Not Found");
-            pw.flush();
-        }
-        pw.println();
-        pw.flush();
     }
     
     public void methodDELETE(){
@@ -181,52 +254,6 @@ public class Manejador extends Thread{
         }
         
         
-    }
-    
-    public void notFound(){
-        pw.println("HTTP/1.0 404 Not Foud");
-        pw.flush();
-        pw.println();
-        pw.flush();
-        pw.print("<html><head><title>Error 404");
-        pw.flush();
-        pw.print("</title></head><body bgcolor=\"#8B0000\"><center><h1>Error 404</h1><h2>No se encontro el archivo solicitado</h2>");
-        pw.flush();
-        pw.print("</center></body></html>");
-        pw.flush();
-    }
-    
-    
-    
-    public void getInfoRequest(String line){
-        StringTokenizer tokens=new StringTokenizer(line," ?");
-        if(tokens.countTokens()==3){//sin parametros
-            this.hasParameters = false;
-            this.method = tokens.nextToken();
-            this.methodID = setMethodID();
-            this.FileName = tokens.nextToken();
-        }else{//con parametros
-            this.hasParameters = true;
-            this.method = tokens.nextToken();
-            this.methodID = setMethodID();
-            this.FileName = tokens.nextToken();
-            this.parameters=tokens.nextToken();
-        }
-        setContentType();
-        printInfoRequest();
-    }
-    
-    public void setContentType(){
-        if(FileName.endsWith(".jpg"))
-            ContentType="image/jpeg";
-        if(FileName.endsWith(".htm"))
-            ContentType="text/html";
-        if(FileName.endsWith(".html"))
-            ContentType="text/html";
-        if(FileName.endsWith(".pdf"))
-            ContentType="application/pdf";
-        if(FileName.endsWith(".mp3"))
-            ContentType="audio/mpeg";
     }
     
     public void printInfoRequest(){
