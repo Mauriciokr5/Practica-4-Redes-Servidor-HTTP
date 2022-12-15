@@ -8,6 +8,8 @@ package com.mycompany.practica4;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  *
@@ -20,10 +22,10 @@ public class Practica4 {
         ServerSocket ss= new ServerSocket(8000);
         System.out.println("Servidor iniciado:---OK");
         System.out.println("Esperando por Cliente....");
-        for(;;)
-        {
-            Socket accept=ss.accept();
-            new Manejador(accept).start();
+        ExecutorService pool = Executors.newFixedThreadPool(100);
+
+        for(;;){
+            pool.execute(new Manejador(ss.accept()));
         }
     }
 }

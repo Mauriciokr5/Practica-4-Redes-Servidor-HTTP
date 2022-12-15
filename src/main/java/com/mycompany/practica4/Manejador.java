@@ -90,7 +90,6 @@ public class Manejador extends Thread{
     }
     
     public void methodGET(){
-        System.out.println(parameters);
         File file= new File("." + this.FileName);
         if(!file.exists()){
             notFound();
@@ -117,7 +116,6 @@ public class Manejador extends Thread{
     }
     
     public void methodPOST(){
-        System.out.println(parameters);
         File file= new File("." + this.FileName);
         if(!file.exists()){
             notFound();
